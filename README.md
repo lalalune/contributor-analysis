@@ -2,8 +2,6 @@
 
 A comprehensive analytics and reporting system for tracking GitHub repository contributions, generating insights, and creating static contributor profile pages.
 
-[Website](https://elizaos.ai/) | [Discord](https://discord.gg/elizaOS) | [DAO](https://www.daos.fun/HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC)
-
 **elizaos/eliza permalinks**:
 - [Daily Contributors](https://elizaos.github.io/data/daily/contributors.json)  
   - [Daily Summary (JSON)](https://elizaos.github.io/data/daily/summary.json)  
