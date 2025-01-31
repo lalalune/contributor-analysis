@@ -1,0 +1,27 @@
+{
+  "name": "github-contributor-sites",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Generate static sites for GitHub contributors",
+  "scripts": {
+    "build-site": "node scripts/build.js",
+    "generate-site": "node dist/generate_site.js",
+    "orchestrate:daily": "node scripts/orchestrator.js daily",
+    "orchestrate:weekly": "node scripts/orchestrator.js weekly",
+    "orchestrate:monthly": "node scripts/orchestrator.js monthly",
+    "orchestrate:all": "node scripts/orchestrator.js all"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.1.0",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.7",
+    "openai": "^4.81.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.12.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.12"
+  }
+}

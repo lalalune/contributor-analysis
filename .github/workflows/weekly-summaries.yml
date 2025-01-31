@@ -1,0 +1,75 @@
+name: Contributor Updates
+on:
+  schedule:
+    # Daily at 22:30 UTC
+    - cron: '30 22 * * *'
+    # Weekly on Friday at 22:00 UTC
+    - cron: '0 22 * * 5'
+    # Monthly on the 4th at 22:00 UTC
+    - cron: '0 22 4 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-contributors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Select period to process
+        id: select-period
+        run: |
+          # This step uses the cron expression to figure out if it is daily, weekly, or monthly.
+          # Then sets an output variable for the next step to run.
+          if [ "${{ github.event.schedule }}" = "30 22 * * *" ]; then
+            echo "type=daily" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 22 * * 5" ]; then
+            echo "type=weekly" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 22 4 * *" ]; then
+            echo "type=monthly" >> $GITHUB_OUTPUT
+          else
+            # Fallback to daily (or skip)
+            echo "type=daily" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Orchestrator
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ "${{ steps.select-period.outputs.type }}" = "daily" ]; then
+            npm run orchestrate:daily
+          elif [ "${{ steps.select-period.outputs.type }}" = "weekly" ]; then
+            npm run orchestrate:weekly
+          elif [ "${{ steps.select-period.outputs.type }}" = "monthly" ]; then
+            npm run orchestrate:monthly
+          else
+            echo "No valid schedule matched."
+            exit 0
+          fi
+
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/ profiles/
+          # Only commit/push if there is a diff
+          if ! git diff --staged --quiet; then
+            git commit -m "Update contributor data and reports [skip ci]"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
