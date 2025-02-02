@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Generate static sites for GitHub contributors",
-  "src": {
+  "scripts": {
     "build-site": "node src/build.js",
     "generate-site": "node dist/generate_site.js",
     "orchestrate:daily": "node src/orchestrator.js daily",
