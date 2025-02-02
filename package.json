@@ -3,13 +3,13 @@
   "type": "module",
   "version": "1.0.0",
   "description": "Generate static sites for GitHub contributors",
-  "scripts": {
-    "build-site": "node scripts/build.js",
+  "src": {
+    "build-site": "node src/build.js",
     "generate-site": "node dist/generate_site.js",
-    "orchestrate:daily": "node scripts/orchestrator.js daily",
-    "orchestrate:weekly": "node scripts/orchestrator.js weekly",
-    "orchestrate:monthly": "node scripts/orchestrator.js monthly",
-    "orchestrate:all": "node scripts/orchestrator.js all"
+    "orchestrate:daily": "node src/orchestrator.js daily",
+    "orchestrate:weekly": "node src/orchestrator.js weekly",
+    "orchestrate:monthly": "node src/orchestrator.js monthly",
+    "orchestrate:all": "node src/orchestrator.js all"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.0",

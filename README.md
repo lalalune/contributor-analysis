@@ -46,7 +46,7 @@ Older versions are backed up in the respective `data/*/history` folders with tim
 
 2. **Install Python and Node Dependencies**  
    ```bash
-   # Python dependencies (if using the Python-based scripts)
+   # Python dependencies (if using the Python-based src)
    pip install openai langchain-core langchain-ollama
    
    # Node.js dependencies
@@ -54,9 +54,9 @@ Older versions are backed up in the respective `data/*/history` folders with tim
    ```
 
 3. **Update Repository Details (Optional)**  
-   If you’re using the Bash scripts (`fetch_github.sh`), you may need to adjust:
+   If you’re using the Bash src (`fetch_github.sh`), you may need to adjust:
    ```bash
-   # scripts/fetch_github.sh
+   # src/fetch_github.sh
    owner="your_org"
    repo="your_repo"
    ```
@@ -68,7 +68,7 @@ Older versions are backed up in the respective `data/*/history` folders with tim
 
 ### 1. Orchestrator-Based Workflow (Preferred)
 
-A single Node script, `scripts/orchestrator.js`, can handle all steps—fetching data, processing, scoring, summarizing, and generating a static site. You can run it in three ways:
+A single Node script, `src/orchestrator.js`, can handle all steps—fetching data, processing, scoring, summarizing, and generating a static site. You can run it in three ways:
 
 - **Daily**:  
   ```bash
@@ -96,26 +96,26 @@ Each command will:
 
 ### 2. Manual Data Collection (Legacy Approach)
 
-If you prefer step-by-step usage (e.g., using the older Python or Bash scripts directly):
+If you prefer step-by-step usage (e.g., using the older Python or Bash src directly):
 
 ```bash
 # Fetch data for the past 7 days
-./scripts/fetch_github.sh your_org your_repo --type prs --days 7
-./scripts/fetch_github.sh your_org your_repo --type issues --days 7
-./scripts/fetch_github.sh your_org your_repo --type commits --days 7
+./src/fetch_github.sh your_org your_repo --type prs --days 7
+./src/fetch_github.sh your_org your_repo --type issues --days 7
+./src/fetch_github.sh your_org your_repo --type commits --days 7
 
 # Combine and process data
-node scripts/combine.js \
+node src/combine.js \
   --prs data/daily/prs.json \
   --issues data/daily/issues.json \
   --commits data/daily/commits.json \
   --output data/daily/combined.json
 
-node scripts/calculate_scores.js \
+node src/calculate_scores.js \
   data/daily/combined.json \
   data/daily/scored.json
 
-node scripts/summarize.js \
+node src/summarize.js \
   data/daily/scored.json \
   data/daily/contributors.json \
   --force  # to overwrite output
@@ -186,9 +186,9 @@ After scoring and summarizing, each contributor looks like:
 
 ## Customization
 
-- **Scoring**: See `scripts/calculate_scores.js` to adjust how commits, PRs, issues, etc. are weighted.  
-- **Summaries**: See `scripts/summarize.js` for custom prompts or different language models.  
-- **Profile Pages**: Modify or restyle `scripts/components/ContributorProfile.js` to tweak the rendered HTML/CSS.  
+- **Scoring**: See `src/calculate_scores.js` to adjust how commits, PRs, issues, etc. are weighted.  
+- **Summaries**: See `src/summarize.js` for custom prompts or different language models.  
+- **Profile Pages**: Modify or restyle `src/components/ContributorProfile.js` to tweak the rendered HTML/CSS.  
 - **Workflow**: Tweak schedule or steps in `.github/workflows/contributor-updates.yml`.
 
 ---
@@ -207,7 +207,7 @@ After scoring and summarizing, each contributor looks like:
 │   ├── weekly/
 │   └── monthly/
 ├── profiles/                # Generated static site
-├── scripts/
+├── src/
 │   ├── orchestrator.js      # Main script orchestrating everything
 │   ├── calculate_scores.js
 │   ├── summarize.js
@@ -225,7 +225,7 @@ After scoring and summarizing, each contributor looks like:
 
 ## Requirements
 
-- **Python 3.11+** (if using older Python scripts)
+- **Python 3.11+** (if using older Python src)
 - **Node.js 18+**
 - **GitHub Personal Access Token**: `$GITHUB_TOKEN`
 - **OpenAI API Key** *(optional for AI summaries)*: `$OPENAI_API_KEY`

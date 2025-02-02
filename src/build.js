@@ -16,7 +16,7 @@ const externals = [
 ];
 
 await esbuild.build({
-  entryPoints: ['scripts/generate_site.js'],
+  entryPoints: ['src/generate_site.js'],
   bundle: true,
   platform: 'node',
   target: 'node18',

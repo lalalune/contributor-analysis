@@ -173,7 +173,7 @@ async function processData(period) {
 
         // Process data with better error handling
         console.log('\nRunning combine.js...');
-        const combineCommand = `node --experimental-specifier-resolution=node scripts/combine.js` +
+        const combineCommand = `node --experimental-specifier-resolution=node src/combine.js` +
             ` --prs "${baseDir}/prs.json"` +
             ` --issues "${baseDir}/issues.json"` +
             ` --commits "${baseDir}/commits.json"` +
@@ -193,13 +193,13 @@ async function processData(period) {
 
         // Continue with rest of processing...
         console.log('\nRunning calculate_scores.js...');
-        await runCommand(`node scripts/calculate_scores.js "${baseDir}/combined.json" "${baseDir}/scored.json"`);
+        await runCommand(`node src/calculate_scores.js "${baseDir}/combined.json" "${baseDir}/scored.json"`);
         if (!await verifyFile(`${baseDir}/scored.json`)) {
             throw new Error('Failed to create scored.json');
         }
 
         console.log('\nRunning summarize.js...');
-        await runCommand(`node scripts/summarize.js --force "${baseDir}/scored.json" "${baseDir}/contributors.json"`);
+        await runCommand(`node src/summarize.js --force "${baseDir}/scored.json" "${baseDir}/contributors.json"`);
         if (!await verifyFile(`${baseDir}/contributors.json`)) {
             throw new Error('Failed to create contributors.json');
         }
@@ -211,8 +211,8 @@ async function processData(period) {
         // Generate summaries for daily data
         if (period === 'daily') {
             console.log('\nGenerating daily summaries...');
-            await runCommand(`node scripts/summarize_daily.js "${baseDir}/contributors.json" -t json "${baseDir}/summary.json"`);
-            await runCommand(`node scripts/summarize_daily.js "${baseDir}/contributors.json" -t md "${baseDir}/summary.md"`);
+            await runCommand(`node src/summarize_daily.js "${baseDir}/contributors.json" -t json "${baseDir}/summary.json"`);
+            await runCommand(`node src/summarize_daily.js "${baseDir}/contributors.json" -t md "${baseDir}/summary.md"`);
 
             // Backup current files to history
             await copyFile(`${baseDir}/contributors.json`, `${baseDir}/history/contributors_${timestamp}.json`);
