@@ -1,11 +1,12 @@
 import { exec } from 'child_process';
-import { mkdir, writeFile, copyFile, access, stat, readFile } from 'fs/promises';
+import { mkdir, writeFile, copyFile, access, stat, readdir } from 'fs/promises';
 import { promisify } from 'util';
 import { Octokit } from '@octokit/rest';
 import { formatISO, subDays } from 'date-fns';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { fetchPRs, fetchIssues, fetchCommits } from './fetch_github.js';
+import path from 'path';
 
 console.log('Loading orchestrator.js');
 
@@ -161,11 +162,20 @@ async function processData(period) {
     const timestamp = getTimestamp();
     const baseDir = `data/${period}`;
 
+    // Add debug logging
+    console.log('DEBUG: Current working directory:', process.cwd());
+    console.log('DEBUG: Base directory:', baseDir);
+
     try {
+        // Ensure the base directory exists
+        await mkdir(baseDir, { recursive: true });
+        console.log('DEBUG: Created/verified base directory:', baseDir);
+        
         // Verify input files exist
         const requiredFiles = ['prs.json', 'issues.json', 'commits.json'];
         for (const file of requiredFiles) {
             const filepath = `${baseDir}/${file}`;
+            console.log('DEBUG: Checking for required file:', filepath);
             if (!await verifyFile(filepath)) {
                 throw new Error(`Required input file ${filepath} not found`);
             }
@@ -180,6 +190,7 @@ async function processData(period) {
             ` --output "${baseDir}/combined.json"` +
             ` --data-dir "${baseDir}"`;
             
+        console.log('DEBUG: Running combine command:', combineCommand);
         try {
             await runCommand(combineCommand);
         } catch (error) {
@@ -187,25 +198,73 @@ async function processData(period) {
             throw new Error('Failed to execute combine.js');
         }
 
+        // Log what files exist after combine.js
+        console.log('DEBUG: Files after combine.js:');
+        try {
+            const files = await readdir(baseDir);
+            console.log(files);
+        } catch (e) {
+            console.log('Error reading directory:', e);
+        }
+
         if (!await verifyFile(`${baseDir}/combined.json`)) {
             throw new Error('Failed to create combined.json');
         }
 
-        // Continue with rest of processing...
+        // Calculate scores
         console.log('\nRunning calculate_scores.js...');
-        await runCommand(`node src/calculate_scores.js "${baseDir}/combined.json" "${baseDir}/scored.json"`);
+        const scoresCommand = `node src/calculate_scores.js "${baseDir}/combined.json" "${baseDir}/scored.json"`;
+        console.log('DEBUG: Running scores command:', scoresCommand);
+        await runCommand(scoresCommand);
+        
         if (!await verifyFile(`${baseDir}/scored.json`)) {
             throw new Error('Failed to create scored.json');
         }
 
+        // Run summarize.js with corrected paths
         console.log('\nRunning summarize.js...');
-        await runCommand(`node src/summarize.js --force "${baseDir}/scored.json" "${baseDir}/contributors.json"`);
+        await mkdir(baseDir, { recursive: true });
+
+        const absoluteInputPath = path.resolve(process.cwd(), `${baseDir}/scored.json`);
+        const absoluteOutputPath = path.resolve(process.cwd(), `${baseDir}/contributors.json`);
+
+        console.log('DEBUG: Input path:', absoluteInputPath);
+        console.log('DEBUG: Output path:', absoluteOutputPath);
+
+        const summarizeCommand = `node src/summarize.js --force "${absoluteInputPath}" "${absoluteOutputPath}"`;
+        console.log('DEBUG: Running summarize command:', summarizeCommand);
+        await runCommand(summarizeCommand);
+
+        // Check output location immediately after summarize.js
+        console.log('DEBUG: Checking output locations after summarize.js:');
+        console.log(`Checking ${baseDir}/contributors.json`);
+        console.log(`Checking ${process.cwd()}/${baseDir}/contributors.json`);
+        
+        // List all files in relevant directories
+        console.log('DEBUG: Files in base directory:');
+        try {
+            const files = await readdir(baseDir);
+            console.log(files);
+        } catch (e) {
+            console.log('Error reading directory:', e);
+        }
+
+        // Verify the file was created
         if (!await verifyFile(`${baseDir}/contributors.json`)) {
             throw new Error('Failed to create contributors.json');
         }
 
-        // Copy contributors file to root data directory
-        await copyFile(`${baseDir}/contributors.json`, 'data/contributors.json');
+        // Copy contributors file to root data directory with explicit paths
+        const sourcePath = `${process.cwd()}/${baseDir}/contributors.json`;
+        const destPath = `${process.cwd()}/data/contributors.json`;
+        console.log('DEBUG: Copying from:', sourcePath);
+        console.log('DEBUG: Copying to:', destPath);
+        await copyFile(sourcePath, destPath);
+        
+        console.log('DEBUG: Verifying copy operation...');
+        if (!await verifyFile(destPath)) {
+            throw new Error('Failed to copy contributors.json to root data directory');
+        }
         console.log('Copied contributors.json to root data directory');
 
         // Generate summaries for daily data
@@ -214,10 +273,15 @@ async function processData(period) {
             await runCommand(`node src/summarize_daily.js "${baseDir}/contributors.json" -t json "${baseDir}/summary.json"`);
             await runCommand(`node src/summarize_daily.js "${baseDir}/contributors.json" -t md "${baseDir}/summary.md"`);
 
-            // Backup current files to history
-            await copyFile(`${baseDir}/contributors.json`, `${baseDir}/history/contributors_${timestamp}.json`);
-            await copyFile(`${baseDir}/summary.json`, `${baseDir}/history/summary_${timestamp}.json`);
-            await copyFile(`${baseDir}/summary.md`, `${baseDir}/history/summary_${timestamp}.md`);
+            // Create history directory if it doesn't exist
+            const historyDir = `${baseDir}/history`;
+            await mkdir(historyDir, { recursive: true });
+            console.log('DEBUG: Created history directory:', historyDir);
+
+            // Backup current files to history with explicit paths
+            await copyFile(`${baseDir}/contributors.json`, `${historyDir}/contributors_${timestamp}.json`);
+            await copyFile(`${baseDir}/summary.json`, `${historyDir}/summary_${timestamp}.json`);
+            await copyFile(`${baseDir}/summary.md`, `${historyDir}/summary_${timestamp}.md`);
         }
     } catch (error) {
         console.error(`Error processing ${period} data:`, error);
