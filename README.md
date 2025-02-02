@@ -233,3 +233,15 @@ After scoring and summarizing, each contributor looks like:
 ---
 
 Happy analyzing! If you have any questions, feel free to join the [Discord](https://discord.gg/elizaOS) community.
+
+## TODO
+
+- Evaluate closed PRs and issues. If there are comments, analyze why they were closed and give them a score, potentially reducing the score.
+
+- Evaluate PR quality-- a single commit PR could be squashed, which would be a good thing.
+
+- Evaluate PR size-- ultra-small PRs get few points, since they are quick. Really large PRs get few points, since they are hard to review.
+
+- Add scenarios with expected point range for different types of issues, PRs, commits and interactions.
+
+- Assess if they user is trying to game the system or if they are contributing in a way that is not sustainable.

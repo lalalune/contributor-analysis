@@ -265,103 +265,77 @@ async function generateSummary(data, apiKey) {
         return `Unable to generate summary for ${data.contributor} due to an error: ${error.message}`;
     }
 }
-
-/**
- * Main function to process contributors and generate summaries 
- */
 async function main({ inputFile, outputFile, force }) {
-    console.log('\n[summarize.js] Starting...');
-    console.log(`[summarize.js] Input file: ${inputFile}`);
-    console.log(`[summarize.js] Output file: ${outputFile}`);
-
+    console.log('[summarize] Starting...');
+    
     try {
-        // Load and process contributors
-        console.log('[summarize.js] Reading input file...');
-        let contributors;
-        try {
-            const fileContent = await fs.readFile(inputFile, 'utf8');
-            contributors = JSON.parse(fileContent);
-            console.log(`[summarize.js] Successfully loaded ${contributors.length} contributors`);
-        } catch (error) {
-            console.error('[summarize.js] Error reading input:', error);
-            throw new Error(`Failed to read input file: ${error.message}`);
-        }
+        // Read input file
+        const inputData = await fs.readFile(inputFile, 'utf8');
+        const contributors = JSON.parse(inputData);
+        console.log(`[summarize] Loaded ${contributors.length} contributors`);
 
-        // Ensure output directory exists
-        const outputDir = path.dirname(outputFile);
-        console.log(`[summarize.js] Creating output directory: ${outputDir}`);
-        await fs.mkdir(outputDir, { recursive: true });
+        // Get API key
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('OPENAI_API_KEY environment variable required');
+        }
 
         // Process each contributor
-        console.log('[summarize.js] Processing contributors...');
-        for (const contributor of contributors) {
+        console.log('[summarize] Processing contributors...');
+        const promises = contributors.map(async (contributor) => {
             try {
-                console.log(`[summarize.js] Processing ${contributor.contributor}...`);
-                const summary = await generateSummary(contributor, process.env.OPENAI_API_KEY);
+                console.log(`[summarize] Processing ${contributor.contributor}`);
+                const summary = await generateSummary(contributor, apiKey);
                 contributor.summary = summary;
-                console.log(`[summarize.js] Generated summary for ${contributor.contributor}`);
+                console.log(`[summarize] Done with ${contributor.contributor}`);
+                return contributor;
             } catch (error) {
-                console.error(`[summarize.js] Error processing ${contributor.contributor}:`, error);
+                console.error(`[summarize] Error processing ${contributor.contributor}:`, error);
                 contributor.summary = `Error generating summary: ${error.message}`;
+                return contributor;
             }
-        }
+        });
 
-        // Write output file
-        console.log(`[summarize.js] Writing to ${outputFile}`);
-        try {
-            const outputData = JSON.stringify(contributors, null, 2);
-            await fs.writeFile(outputFile, outputData);
-            
-            // Verify the write was successful
-            const fileStats = await fs.stat(outputFile);
-            console.log(`[summarize.js] Successfully wrote ${fileStats.size} bytes to ${outputFile}`);
+        // Wait for all summaries to be generated
+        console.log('[summarize] Waiting for all summaries...');
+        await Promise.all(promises);
+        console.log('[summarize] All summaries generated');
 
-            // Double-check the file is readable
-            const verification = await fs.readFile(outputFile, 'utf8');
-            const parsed = JSON.parse(verification);
-            console.log(`[summarize.js] Verified file contains ${parsed.length} contributors`);
+        // Create output directory
+        const outputDir = path.dirname(outputFile);
+        console.log(`[summarize] Creating directory: ${outputDir}`);
+        await fs.mkdir(outputDir, { recursive: true });
 
-        } catch (error) {
-            console.error('[summarize.js] Error writing output:', error);
-            throw new Error(`Failed to write output file: ${error.message}`);
-        }
+        // Write the output file
+        console.log(`[summarize] Writing to ${outputFile}`);
+        const output = JSON.stringify(contributors, null, 2);
+        await fs.writeFile(outputFile, output);
+        console.log('[summarize] Write complete');
+
+        // Verify the file exists
+        const stats = await fs.stat(outputFile);
+        console.log(`[summarize] Output file verified (${stats.size} bytes)`);
 
     } catch (error) {
-        console.error('[summarize.js] Error:', error.message);
-        throw error;
+        console.error('[summarize] Fatal error:', error);
+        process.exit(1);
     }
 }
 
-// Command line handling
 if (process.argv[1].endsWith('summarize.js')) {
-    import('yargs')
-        .then(({ default: yargs }) => {
-            const argv = yargs(process.argv.slice(2))
-                .option('f', {
-                    alias: 'force',
-                    type: 'boolean',
-                    default: false,
-                    describe: 'Force overwrite output file'
-                })
-                .usage('Usage: $0 <input_file> <output_file> [options]')
-                .demandCommand(2)
-                .argv;
-
-            const [inputFile, outputFile] = argv._;
-            console.log(`[summarize.js] Running with:
-                Input: ${inputFile}
-                Output: ${outputFile}
-                Force: ${argv.force}`);
-                
-            main({
-                inputFile,
-                outputFile,
-                force: argv.force
-            }).catch(error => {
-                console.error('[summarize.js] Fatal error:', error);
-                process.exit(1);
-            });
-        });
+    const args = process.argv.slice(2);
+    if (args.length < 2) {
+        console.error('Usage: node summarize.js <input_file> <output_file>');
+        process.exit(1);
+    }
+    
+    const [inputFile, outputFile] = args;
+    console.log(`[summarize] Input: ${inputFile}`);
+    console.log(`[summarize] Output: ${outputFile}`);
+    
+    main({ 
+        inputFile, 
+        outputFile,
+        force: args.includes('--force') || args.includes('-f')
+    });
 }
-
-export { generateSummary, getContributionStats, getRecentActivity, main };

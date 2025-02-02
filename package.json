@@ -1,8 +1,8 @@
 {
-  "name": "github-contributor-sites",
+  "name": "contributor-analysis",
   "type": "module",
   "version": "1.0.0",
-  "description": "Generate static sites for GitHub contributors",
+  "description": "Analyze GitHub contributors",
   "scripts": {
     "build-site": "node src/build.js",
     "generate-site": "node dist/generate_site.js",
